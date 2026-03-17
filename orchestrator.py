@@ -48,6 +48,9 @@ class Orchestrator:
         self._overlay_lines = []
         self._overlay_lock = threading.Lock()
 
+        # Prevent overlapping speech from continuous + main threads
+        self._speak_lock = threading.Lock()
+
         # File-based debug log
         os.makedirs("logs", exist_ok=True)
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -164,15 +167,16 @@ class Orchestrator:
 
                 if diff_ratio > 0.3:
                     self._log("CONTINUOUS", f"Scene changed (diff={diff_ratio:.0%}): {current_description}")
-                    self.state = AppState.SPEAKING
-                    if self._is_proximity_alert(current_description):
-                        self._log("ALERT", f"Proximity alert: \"{current_description}\"")
-                    t4 = time.time()
-                    speak(current_description)
-                    t5 = time.time()
-                    self._log("LATENCY", f"TTS: {t5 - t4:.1f}s")
-                    self._log("LATENCY", f"Total: {t5 - t0:.1f}s")
-                    self.state = AppState.LISTENING
+                    with self._speak_lock:
+                        self.state = AppState.SPEAKING
+                        if self._is_proximity_alert(current_description):
+                            self._log("ALERT", f"Proximity alert: \"{current_description}\"")
+                        t4 = time.time()
+                        speak(current_description)
+                        t5 = time.time()
+                        self._log("LATENCY", f"TTS: {t5 - t4:.1f}s")
+                        self._log("LATENCY", f"Total: {t5 - t0:.1f}s")
+                        self.state = AppState.LISTENING
                     self.conversation_history.append({
                         "role": "assistant",
                         "content": f"[Continuous mode alert] {current_description}"
@@ -258,9 +262,10 @@ class Orchestrator:
 
                 self._log("NEMOTRON", f"Response: {response}")
 
-                self.state = AppState.SPEAKING
-                self._log("STATE", "SPEAKING...")
-                speak(response)
+                with self._speak_lock:
+                    self.state = AppState.SPEAKING
+                    self._log("STATE", "SPEAKING...")
+                    speak(response)
 
             except KeyboardInterrupt:
                 self.running = False
