@@ -48,8 +48,6 @@ class Orchestrator:
         self._overlay_lines = []
         self._overlay_lock = threading.Lock()
 
-        # Prevent overlapping speech from continuous + main threads
-        self._speak_lock = threading.Lock()
 
         # File-based debug log
         os.makedirs("logs", exist_ok=True)
@@ -155,6 +153,10 @@ class Orchestrator:
 
             t0 = time.time()
             current_description = capture_and_describe()
+            # Strip markdown formatting from vision output
+            current_description = re.sub(r'\*+', '', current_description)
+            current_description = re.sub(r'^#+\s*', '', current_description, flags=re.MULTILINE)
+            current_description = current_description.strip()
             t1 = time.time()
             self._log("LATENCY", f"Vision: {t1 - t0:.1f}s")
             self._log("CONTINUOUS", current_description)
@@ -165,18 +167,17 @@ class Orchestrator:
                 curr_words = set(current_description.lower().split())
                 diff_ratio = len(curr_words.symmetric_difference(prev_words)) / max(len(curr_words | prev_words), 1)
 
-                if diff_ratio > 0.3:
+                if diff_ratio > 0.5:
                     self._log("CONTINUOUS", f"Scene changed (diff={diff_ratio:.0%}): {current_description}")
-                    with self._speak_lock:
-                        self.state = AppState.SPEAKING
-                        if self._is_proximity_alert(current_description):
-                            self._log("ALERT", f"Proximity alert: \"{current_description}\"")
-                        t4 = time.time()
-                        speak(current_description)
-                        t5 = time.time()
-                        self._log("LATENCY", f"TTS: {t5 - t4:.1f}s")
-                        self._log("LATENCY", f"Total: {t5 - t0:.1f}s")
-                        self.state = AppState.LISTENING
+                    self.state = AppState.SPEAKING
+                    if self._is_proximity_alert(current_description):
+                        self._log("ALERT", f"Proximity alert: \"{current_description}\"")
+                    t4 = time.time()
+                    speak(current_description)
+                    t5 = time.time()
+                    self._log("LATENCY", f"TTS: {t5 - t4:.1f}s")
+                    self._log("LATENCY", f"Total: {t5 - t0:.1f}s")
+                    self.state = AppState.LISTENING
                     self.conversation_history.append({
                         "role": "assistant",
                         "content": f"[Continuous mode alert] {current_description}"
@@ -262,10 +263,9 @@ class Orchestrator:
 
                 self._log("NEMOTRON", f"Response: {response}")
 
-                with self._speak_lock:
-                    self.state = AppState.SPEAKING
-                    self._log("STATE", "SPEAKING...")
-                    speak(response)
+                self.state = AppState.SPEAKING
+                self._log("STATE", "SPEAKING...")
+                speak(response)
 
             except KeyboardInterrupt:
                 self.running = False
