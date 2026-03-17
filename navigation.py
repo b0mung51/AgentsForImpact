@@ -76,7 +76,12 @@ def _get_directions_mapkit(destination: str, origin: str = None) -> str:
                     event.set()
                     return
 
-                route = response.routes()[0]
+                routes = response.routes()
+                if not routes:
+                    result["error"] = "No walking route found to that destination."
+                    event.set()
+                    return
+                route = routes[0]
                 steps = []
                 for step in route.steps():
                     instruction = step.instructions()

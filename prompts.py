@@ -36,16 +36,6 @@ CONTEXT:
 - When the user asks to read something, ALWAYS use the read_text tool
 """
 
-# VISION_DESCRIBE_PROMPT = """Describe this image for a blind person navigating a space. \
-# Under 12 words. Telegraphic. Skip anything not immediately relevant.
-
-# MANDATORY: estimate distance in feet for every object or obstacle mentioned. \
-# Priority order: safety hazards with distance, obstacles with distance, then spatial layout. \
-# Use spatial terms: "ahead", "left", "right". \
-# Example: "Person ahead, 4 feet. Wall left, 2 feet." \
-# Example: "Clear hallway. Door right, 15 feet."
-# """
-
 VISION_DESCRIBE_PROMPT = """Describe this image for a blind person navigating a space. \
 Under 12 words. Telegraphic. Skip anything not immediately relevant.
 

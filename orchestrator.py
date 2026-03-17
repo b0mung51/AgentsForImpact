@@ -12,13 +12,12 @@ import os
 import re
 import threading
 import time
-import textwrap
 from enum import Enum
+import config
 from agent import run_agentic_loop, create_initial_history
 from speech import listen, speak, play_proximity_beep
 from vision import capture_and_describe, capture_frame_raw, read_text, release_camera, get_camera
 from navigation import get_directions
-from config import CONTINUOUS_MODE_INTERVAL
 from prompts import CONTINUOUS_MODE_PROMPT_TEMPLATE
 
 MAX_OVERLAY_LINES = 8
@@ -37,10 +36,8 @@ class Orchestrator:
         self.conversation_history = create_initial_history()
         self.continuous_mode = False
         self.continuous_timer = None
-        self.continuous_interval = CONTINUOUS_MODE_INTERVAL
+        self.continuous_interval = config.CONTINUOUS_MODE_INTERVAL
         self.last_scene_description = None
-        self.last_scene_time = None
-        self.current_nav_step = "No active navigation"
         self.running = True
         self._prev_frame = None
 
@@ -131,21 +128,20 @@ class Orchestrator:
         self.continuous_mode = False
 
     def _is_proximity_alert(self, text):
-        """Check if response mentions an object within 5 feet."""
+        """Check if response mentions an object within proximity threshold."""
         match = re.search(r'(\d+)\s*(?:feet|ft)', text, re.IGNORECASE)
-        if match and int(match.group(1)) <= 3:
+        if match and int(match.group(1)) <= config.PROXIMITY_ALERT_FEET:
             return True
         return bool(re.search(r'\b(close|near|approaching|right here)\b', text, re.IGNORECASE))
 
     def _process_continuous_update(self):
         try:
             # Frame diff gate: skip API calls if scene barely changed
-            import config
             if config.VISION_ONLY_MODE:
                 frame = capture_frame_raw()
                 if self._prev_frame is not None:
                     mse = np.mean((frame.astype(float) - self._prev_frame.astype(float)) ** 2)
-                    if mse < 500:
+                    if mse < config.FRAME_DIFF_MSE_THRESHOLD:
                         self._log("CONTINUOUS", f"Scene unchanged (MSE={mse:.0f}), skipping")
                         self._prev_frame = frame
                         return
@@ -167,7 +163,7 @@ class Orchestrator:
                 curr_words = set(current_description.lower().split())
                 diff_ratio = len(curr_words.symmetric_difference(prev_words)) / max(len(curr_words | prev_words), 1)
 
-                if diff_ratio > 0.5:
+                if diff_ratio > config.SCENE_CHANGE_THRESHOLD:
                     self._log("CONTINUOUS", f"Scene changed (diff={diff_ratio:.0%}): {current_description}")
                     self.state = AppState.SPEAKING
                     if self._is_proximity_alert(current_description):
@@ -186,7 +182,6 @@ class Orchestrator:
                     self._log("CONTINUOUS", f"Text similar (diff={diff_ratio:.0%}), skipping")
 
             self.last_scene_description = current_description
-            self.last_scene_time = time.time()
 
         except Exception as e:
             self._log("ERROR", f"Continuous mode: {e}")
@@ -275,8 +270,6 @@ class Orchestrator:
 
     def run(self):
         """Main thread runs camera feed (required by macOS), speech loop in background."""
-        import config
-
         if config.VISION_ONLY_MODE:
             # Vision-only: no mic, auto-start continuous mode with faster interval
             self._log("STATE", "Vision-only mode starting...")

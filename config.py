@@ -44,6 +44,12 @@ JPEG_QUALITY = 60
 
 # --- Continuous Mode ---
 CONTINUOUS_MODE_INTERVAL = 5  # seconds between frame captures
+FRAME_DIFF_MSE_THRESHOLD = 500  # pixel MSE below this = scene unchanged
+SCENE_CHANGE_THRESHOLD = 0.5  # word diff ratio above this = speak update
+PROXIMITY_ALERT_FEET = 3  # distance threshold for proximity alerts
+
+# --- Agent ---
+AGENTIC_LOOP_MAX_ITERATIONS = 5
 
 # --- Fallback flags ---
 USE_RIVA_ASR = True

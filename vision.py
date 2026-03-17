@@ -5,12 +5,7 @@ import cv2
 import base64
 import time
 from openai import OpenAI
-import config as _config
-from config import (
-    NVIDIA_API_KEY, VISION_BASE_URL, VISION_MODEL,
-    VISION_MAX_TOKENS, VISION_TEMPERATURE,
-    WEBCAM_DEVICE_INDEX, FRAME_WIDTH, FRAME_HEIGHT, JPEG_QUALITY
-)
+import config
 from prompts import (
     VISION_DESCRIBE_PROMPT, VISION_FOCUSED_PROMPT_TEMPLATE,
     VISION_READ_TEXT_PROMPT
@@ -18,8 +13,8 @@ from prompts import (
 
 # --- Vision API client ---
 vision_client = OpenAI(
-    base_url=VISION_BASE_URL,
-    api_key=NVIDIA_API_KEY
+    base_url=config.VISION_BASE_URL,
+    api_key=config.NVIDIA_API_KEY
 )
 
 # --- Webcam handle (kept open for low-latency repeated captures) ---
@@ -32,9 +27,9 @@ def _get_camera():
     global _camera
     if _camera is None or not _camera.isOpened():
         # CAP_AVFOUNDATION is the most reliable backend on macOS
-        _camera = cv2.VideoCapture(WEBCAM_DEVICE_INDEX, cv2.CAP_AVFOUNDATION)
-        _camera.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
-        _camera.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
+        _camera = cv2.VideoCapture(config.WEBCAM_DEVICE_INDEX, cv2.CAP_AVFOUNDATION)
+        _camera.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
+        _camera.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
         if not _camera.isOpened():
             raise RuntimeError(
                 "Could not open webcam. Check System Settings > Privacy & Security > Camera."
@@ -62,8 +57,8 @@ def capture_frame() -> bytes:
         raise RuntimeError("Failed to capture frame from webcam.")
 
     _last_raw_frame = frame.copy()
-    frame = cv2.resize(frame, (FRAME_WIDTH, FRAME_HEIGHT))
-    encode_params = [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY]
+    frame = cv2.resize(frame, (config.FRAME_WIDTH, config.FRAME_HEIGHT))
+    encode_params = [cv2.IMWRITE_JPEG_QUALITY, config.JPEG_QUALITY]
     _, jpeg_bytes = cv2.imencode('.jpg', frame, encode_params)
     return jpeg_bytes.tobytes()
 
@@ -73,8 +68,8 @@ def capture_frame_from_file(path: str) -> bytes:
     frame = cv2.imread(path)
     if frame is None:
         raise RuntimeError(f"Could not read test image: {path}")
-    frame = cv2.resize(frame, (FRAME_WIDTH, FRAME_HEIGHT))
-    _, jpeg_bytes = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+    frame = cv2.resize(frame, (config.FRAME_WIDTH, config.FRAME_HEIGHT))
+    _, jpeg_bytes = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, config.JPEG_QUALITY])
     return jpeg_bytes.tobytes()
 
 
@@ -92,7 +87,7 @@ def analyze_frame(jpeg_bytes: bytes, prompt: str) -> str:
     b64_image = base64.b64encode(jpeg_bytes).decode("utf-8")
 
     response = vision_client.chat.completions.create(
-        model=VISION_MODEL,
+        model=config.VISION_MODEL,
         messages=[
             {
                 "role": "user",
@@ -110,8 +105,8 @@ def analyze_frame(jpeg_bytes: bytes, prompt: str) -> str:
                 ]
             }
         ],
-        max_tokens=_config.VISION_ONLY_MAX_TOKENS if _config.VISION_ONLY_MODE else VISION_MAX_TOKENS,
-        temperature=VISION_TEMPERATURE,
+        max_tokens=config.VISION_ONLY_MAX_TOKENS if config.VISION_ONLY_MODE else config.VISION_MAX_TOKENS,
+        temperature=config.VISION_TEMPERATURE,
     )
     return response.choices[0].message.content
 

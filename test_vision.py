@@ -11,7 +11,7 @@ Usage:
 """
 import cv2
 import time
-from vision import analyze_frame, capture_frame_from_file
+from vision import analyze_frame
 from prompts import VISION_DESCRIBE_PROMPT, VISION_READ_TEXT_PROMPT
 from config import WEBCAM_DEVICE_INDEX, FRAME_WIDTH, FRAME_HEIGHT, JPEG_QUALITY
 

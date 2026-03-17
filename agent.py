@@ -4,16 +4,12 @@ Uses OpenAI SDK pointed at NVIDIA's API endpoint.
 """
 import json
 from openai import OpenAI
-import config as _config
-from config import (
-    NVIDIA_API_KEY, NEMOTRON_BASE_URL, NEMOTRON_MODEL,
-    NEMOTRON_MAX_TOKENS, NEMOTRON_TEMPERATURE
-)
+import config
 from prompts import SYSTEM_PROMPT
 
 client = OpenAI(
-    base_url=NEMOTRON_BASE_URL,
-    api_key=NVIDIA_API_KEY
+    base_url=config.NEMOTRON_BASE_URL,
+    api_key=config.NVIDIA_API_KEY
 )
 
 TOOL_DEFINITIONS = [
@@ -126,12 +122,12 @@ def call_nemotron(conversation_history: list[dict]) -> dict:
     Returns the full response choice (may contain tool_calls or text content).
     """
     response = client.chat.completions.create(
-        model=NEMOTRON_MODEL,
+        model=config.NEMOTRON_MODEL,
         messages=conversation_history,
         tools=TOOL_DEFINITIONS,
         tool_choice="auto",
-        temperature=NEMOTRON_TEMPERATURE,
-        max_tokens=_config.NEMOTRON_VISION_ONLY_MAX_TOKENS if _config.VISION_ONLY_MODE else NEMOTRON_MAX_TOKENS,
+        temperature=config.NEMOTRON_TEMPERATURE,
+        max_tokens=config.NEMOTRON_VISION_ONLY_MAX_TOKENS if config.VISION_ONLY_MODE else config.NEMOTRON_MAX_TOKENS,
     )
     return response.choices[0]
 
@@ -147,7 +143,7 @@ def run_agentic_loop(conversation_history: list[dict], tool_handlers: dict) -> s
     Returns:
         The final text response from Nemotron.
     """
-    max_iterations = 5
+    max_iterations = config.AGENTIC_LOOP_MAX_ITERATIONS
 
     for _ in range(max_iterations):
         choice = call_nemotron(conversation_history)
