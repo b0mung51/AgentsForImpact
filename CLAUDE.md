@@ -60,4 +60,21 @@ Requires `.env` file with `NVIDIA_API_KEY=nvapi-xxx` (get from build.nvidia.com)
 
 ## Implementation Status
 
-The repository contains only the technical spec (`TECHNICAL_SPEC_from_James.md`) — **no source code has been written yet**. The spec includes complete file-by-file implementation details with code samples for all modules. Reference it as the implementation blueprint.
+All core modules are implemented. `test_vision.py` is confirmed working end-to-end (webcam capture → Llama Vision API → text description).
+
+## Known Issues & Fixes
+
+### macOS camera warm-up delay (vision.py)
+OpenCV on macOS via AVFoundation returns a blank/failed frame on the very first `camera.read()` call after opening. Fixed by adding a `time.sleep(0.5)` after `VideoCapture` initialization in `_get_camera()`.
+
+### venv must be used — do not use system or conda Python
+The project dependencies (`cv2`, `nvidia-riva-client`, etc.) are installed only in `venv/`. Always run with:
+```bash
+source venv/bin/activate
+python main.py
+# or directly:
+venv/bin/python main.py
+```
+
+### Camera permissions on macOS
+If OpenCV prints `not authorized to capture video`, go to **System Settings > Privacy & Security > Camera** and enable access for your terminal app, then restart the terminal.

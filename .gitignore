@@ -1,5 +1,161 @@
+################################################################################
+# Python
+################################################################################
+
+# Bytecode and cache
 __pycache__/
-.pycache/
+*.py[cod]
+*$py.class
 *.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+wheels/
+*.whl
+MANIFEST
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+
+################################################################################
+# Virtual environments
+################################################################################
+
+venv/
+.venv/
+env/
+.env_dir/
+ENV/
+venv.bak/
+
+################################################################################
+# Environment variables and secrets
+################################################################################
 
 .env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+credentials.json
+
+# Keep the example template
+!.env.example
+!.env.template
+
+################################################################################
+# Testing and coverage
+################################################################################
+
+.pytest_cache/
+.cache/
+coverage/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+*.coverprofile
+
+################################################################################
+# Test photos (runtime captures from webcam — user-generated content)
+################################################################################
+
+test_photos/*.jpg
+test_photos/*.jpeg
+test_photos/*.png
+test_photos/*.bmp
+test_photos/*.tiff
+
+################################################################################
+# Logs
+################################################################################
+
+*.log
+*.log.*
+logs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+################################################################################
+# macOS
+################################################################################
+
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Trashes
+.Spotlight-V100
+.TemporaryItems
+.fseventsd
+
+################################################################################
+# PyObjC compiled extensions (outside venv)
+################################################################################
+
+*.so
+*.dylib
+
+################################################################################
+# OpenCV / NumPy / grpcio build artifacts
+################################################################################
+
+*.o
+*.a
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+################################################################################
+# IDE and editors
+################################################################################
+
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*.swn
+.*.sw?
+*~
+.spyderproject.cfg
+.spyproject/
+.ropeproject/
+
+################################################################################
+# Jupyter (in case notebooks are added for experimentation)
+################################################################################
+
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+################################################################################
+# Audio / media runtime captures
+################################################################################
+
+*.wav
+*.mp3
+*.aiff
+*.m4a

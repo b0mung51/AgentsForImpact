@@ -1,0 +1,24 @@
+# NVIDIA APIs
+openai>=2.28.0
+nvidia-riva-client>=2.25.0
+grpcio>=1.67.0
+protobuf>=5.29.0
+
+# Vision
+opencv-python>=4.13.0
+
+# Audio I/O
+sounddevice>=0.5.0
+numpy>=2.4.0
+pyaudio>=0.2.14
+
+# macOS native (MapKit, CoreLocation)
+pyobjc-framework-MapKit>=12.1
+pyobjc-framework-CoreLocation>=12.1
+
+# Configuration
+python-dotenv>=1.2.0
+
+# Fallbacks
+SpeechRecognition>=3.15.0
+pyttsx3>=2.99
