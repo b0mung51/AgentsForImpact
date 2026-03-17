@@ -9,13 +9,14 @@ import cv2
 import datetime
 import numpy as np
 import os
+import re
 import threading
 import time
 import textwrap
 from enum import Enum
 from agent import run_agentic_loop, create_initial_history
-from speech import listen, speak
-from vision import capture_and_describe, read_text, release_camera, get_camera
+from speech import listen, speak, play_proximity_beep
+from vision import capture_and_describe, capture_frame_raw, read_text, release_camera, get_camera
 from navigation import get_directions
 from config import CONTINUOUS_MODE_INTERVAL
 from prompts import CONTINUOUS_MODE_PROMPT_TEMPLATE
@@ -41,6 +42,7 @@ class Orchestrator:
         self.last_scene_time = None
         self.current_nav_step = "No active navigation"
         self.running = True
+        self._prev_frame = None
 
         # Thread-safe overlay log buffer
         self._overlay_lines = []
@@ -127,35 +129,56 @@ class Orchestrator:
     def _stop_continuous_timer(self):
         self.continuous_mode = False
 
+    def _is_proximity_alert(self, text):
+        """Check if response mentions an object within 5 feet."""
+        match = re.search(r'(\d+)\s*(?:feet|ft)', text, re.IGNORECASE)
+        if match and int(match.group(1)) <= 3:
+            return True
+        return bool(re.search(r'\b(close|near|approaching|right here)\b', text, re.IGNORECASE))
+
     def _process_continuous_update(self):
         try:
+            # Frame diff gate: skip API calls if scene barely changed
+            import config
+            if config.VISION_ONLY_MODE:
+                frame = capture_frame_raw()
+                if self._prev_frame is not None:
+                    mse = np.mean((frame.astype(float) - self._prev_frame.astype(float)) ** 2)
+                    if mse < 500:
+                        self._log("CONTINUOUS", f"Scene unchanged (MSE={mse:.0f}), skipping")
+                        self._prev_frame = frame
+                        return
+                self._prev_frame = frame
+
+            t0 = time.time()
             current_description = capture_and_describe()
+            t1 = time.time()
+            self._log("LATENCY", f"Vision: {t1 - t0:.1f}s")
             self._log("CONTINUOUS", current_description)
 
             if self.last_scene_description:
-                seconds_ago = int(time.time() - self.last_scene_time) if self.last_scene_time else self.continuous_interval
+                # Skip Nemotron — compare vision descriptions directly for latency
+                prev_words = set(self.last_scene_description.lower().split())
+                curr_words = set(current_description.lower().split())
+                diff_ratio = len(curr_words.symmetric_difference(prev_words)) / max(len(curr_words | prev_words), 1)
 
-                update_prompt = CONTINUOUS_MODE_PROMPT_TEMPLATE.format(
-                    seconds_ago=seconds_ago,
-                    previous_description=self.last_scene_description,
-                    current_description=current_description,
-                    current_nav_step=self.current_nav_step,
-                )
-
-                temp_history = self.conversation_history.copy()
-                temp_history.append({"role": "user", "content": update_prompt})
-
-                response = run_agentic_loop(temp_history, self.tool_handlers)
-                self._log("CONTINUOUS", f"Nemotron: {response}")
-
-                if response.strip() != "NO_UPDATE":
+                if diff_ratio > 0.3:
+                    self._log("CONTINUOUS", f"Scene changed (diff={diff_ratio:.0%}): {current_description}")
                     self.state = AppState.SPEAKING
-                    speak(response)
+                    if self._is_proximity_alert(current_description):
+                        self._log("ALERT", f"Proximity alert: \"{current_description}\"")
+                    t4 = time.time()
+                    speak(current_description)
+                    t5 = time.time()
+                    self._log("LATENCY", f"TTS: {t5 - t4:.1f}s")
+                    self._log("LATENCY", f"Total: {t5 - t0:.1f}s")
                     self.state = AppState.LISTENING
                     self.conversation_history.append({
                         "role": "assistant",
-                        "content": f"[Continuous mode alert] {response}"
+                        "content": f"[Continuous mode alert] {current_description}"
                     })
+                else:
+                    self._log("CONTINUOUS", f"Text similar (diff={diff_ratio:.0%}), skipping")
 
             self.last_scene_description = current_description
             self.last_scene_time = time.time()
@@ -247,9 +270,19 @@ class Orchestrator:
 
     def run(self):
         """Main thread runs camera feed (required by macOS), speech loop in background."""
-        # Speech loop in background thread
-        speech_thread = threading.Thread(target=self._speech_loop, daemon=True)
-        speech_thread.start()
+        import config
+
+        if config.VISION_ONLY_MODE:
+            # Vision-only: no mic, auto-start continuous mode with faster interval
+            self._log("STATE", "Vision-only mode starting...")
+            speak("Watching for you.")
+            self.continuous_mode = True
+            self.continuous_interval = config.CONTINUOUS_MODE_INTERVAL_VISION_ONLY
+            self._start_continuous_timer()
+        else:
+            # Normal mode: speech loop in background thread
+            speech_thread = threading.Thread(target=self._speech_loop, daemon=True)
+            speech_thread.start()
 
         # Camera feed on main thread (macOS requires cv2.imshow on main thread)
         camera = get_camera()

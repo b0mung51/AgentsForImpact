@@ -48,3 +48,9 @@ CONTINUOUS_MODE_INTERVAL = 5  # seconds between frame captures
 # --- Fallback flags ---
 USE_RIVA_ASR = True
 USE_RIVA_TTS = True
+
+# --- Vision-only demo mode ---
+VISION_ONLY_MODE = False
+VISION_ONLY_MAX_TOKENS = 32           # 3-5 words ≈ 10-15 tokens
+NEMOTRON_VISION_ONLY_MAX_TOKENS = 64  # short diff or NO_UPDATE
+CONTINUOUS_MODE_INTERVAL_VISION_ONLY = 3  # faster loop for real-time

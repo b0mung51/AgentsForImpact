@@ -4,6 +4,7 @@ Uses OpenAI SDK pointed at NVIDIA's API endpoint.
 """
 import json
 from openai import OpenAI
+import config as _config
 from config import (
     NVIDIA_API_KEY, NEMOTRON_BASE_URL, NEMOTRON_MODEL,
     NEMOTRON_MAX_TOKENS, NEMOTRON_TEMPERATURE
@@ -130,7 +131,7 @@ def call_nemotron(conversation_history: list[dict]) -> dict:
         tools=TOOL_DEFINITIONS,
         tool_choice="auto",
         temperature=NEMOTRON_TEMPERATURE,
-        max_tokens=NEMOTRON_MAX_TOKENS,
+        max_tokens=_config.NEMOTRON_VISION_ONLY_MAX_TOKENS if _config.VISION_ONLY_MODE else NEMOTRON_MAX_TOKENS,
     )
     return response.choices[0]
 

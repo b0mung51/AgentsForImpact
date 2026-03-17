@@ -5,6 +5,7 @@ import cv2
 import base64
 import time
 from openai import OpenAI
+import config as _config
 from config import (
     NVIDIA_API_KEY, VISION_BASE_URL, VISION_MODEL,
     VISION_MAX_TOKENS, VISION_TEMPERATURE,
@@ -109,7 +110,7 @@ def analyze_frame(jpeg_bytes: bytes, prompt: str) -> str:
                 ]
             }
         ],
-        max_tokens=VISION_MAX_TOKENS,
+        max_tokens=_config.VISION_ONLY_MAX_TOKENS if _config.VISION_ONLY_MODE else VISION_MAX_TOKENS,
         temperature=VISION_TEMPERATURE,
     )
     return response.choices[0].message.content
@@ -134,6 +135,12 @@ def read_text() -> str:
     """Tool handler: capture a webcam frame and read all visible text."""
     frame = capture_frame()
     return analyze_frame(frame, VISION_READ_TEXT_PROMPT)
+
+
+def capture_frame_raw():
+    """Capture a frame and return raw numpy array for frame comparison."""
+    capture_frame()
+    return _last_raw_frame
 
 
 def release_camera():

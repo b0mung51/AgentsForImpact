@@ -120,6 +120,18 @@ def _listen_fallback() -> str:
         return ""
 
 
+def play_proximity_beep():
+    """Play a short urgent beep for proximity alerts."""
+    print("[BEEP] Playing proximity beep now")
+    duration = 0.3
+    freq = 1000
+    sample_rate = 44100
+    t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
+    tone = (np.sin(2 * np.pi * freq * t) * 32767).astype(np.int16)
+    sd.play(tone, samplerate=sample_rate)
+    sd.wait()
+
+
 def speak(text: str) -> None:
     """
     Convert text to speech and play through speakers.

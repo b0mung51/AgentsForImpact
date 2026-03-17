@@ -18,6 +18,11 @@ def main():
         action="store_true",
         help="Use fallback speech engines instead of NVIDIA Riva"
     )
+    parser.add_argument(
+        "--vision-only",
+        action="store_true",
+        help="Vision-only demo mode: no mic, auto continuous capture + TTS alerts"
+    )
     args = parser.parse_args()
 
     if args.no_riva:
@@ -25,9 +30,17 @@ def main():
         config.USE_RIVA_TTS = False
         print("Using fallback speech engines (SpeechRecognition + pyttsx3)")
 
+    if args.vision_only:
+        config.VISION_ONLY_MODE = True
+        config.USE_RIVA_ASR = False
+        print("Vision-only mode: mic disabled, continuous vision active")
+
     print("=" * 50)
     print("  THIRD EYE - AI Vision Assistant")
-    print("  Speak to navigate. Say 'exit' to quit.")
+    if config.VISION_ONLY_MODE:
+        print("  VISION-ONLY MODE — auto continuous capture")
+    else:
+        print("  Speak to navigate. Say 'exit' to quit.")
     print("=" * 50)
     print()
 
